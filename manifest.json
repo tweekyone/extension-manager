@@ -1,0 +1,16 @@
+{
+  "name": "Vovan's extension manager",
+  "description": "Manages extensions",
+  "permissions": ["management"],
+  "version": "0.1.0",
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "resources/icon128.png"
+    }
+  },
+  "icons": {
+    "128": "resources/icon128.png"
+  },
+  "manifest_version": 3
+}
