@@ -11,8 +11,8 @@ let activeExtensionsInfo = [];
 let inactiveExtensionsInfo = [];
 
 document.addEventListener('DOMContentLoaded', function() {
-    chrome.management.getAll(function(extensionInfo) {
-        extensionInfo.forEach(function(extensionInfo) {
+    chrome.management.getAll(function(extensionsInfo) {
+        extensionsInfo.forEach(function(extensionInfo) {
             if (extensionInfo.enabled) {
                 activeExtensionsInfo.push(extensionInfo);
             } else {
@@ -119,6 +119,7 @@ function generateToggleSwitch(extension) {
         setTimeout(
             () => {
                 extension.enabled = this.checked;
+                chrome.management.setEnabled(extension.id, extension.enabled);
                 switchExtensionArray(extension);
                 switchExtensionTable(extension);
             },
