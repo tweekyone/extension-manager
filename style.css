@@ -60,3 +60,20 @@
   .slider.round:before {
     border-radius: 50%;
   }
+
+  /* tooltip */
+  .tooltip {
+    position: absolute;
+    background-color: #fff;
+    padding: inherit;
+    z-index: 2;
+  }
+  
+  .info-icon {
+    position: relative;
+  }
+
+  .td-tooltip {
+    z-index: 1;
+  }
+  
