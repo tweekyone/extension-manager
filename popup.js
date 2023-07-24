@@ -5,6 +5,7 @@ const inactiveExtTabId = 'inactive-table';
 const activeExtTbodyId = 'active-tbody';
 const inactiveExtTbodyId = 'inactive-tbody';
 const extRowId = 'ext-row-';
+const extCellId = 'ext-cell-';
 
 const activeTable = document.createElement('table');
 const activeTbody = document.createElement('tbody');
@@ -26,6 +27,11 @@ appIconsContainer.appendChild(inactiveTable);
 let pinnedExtensionIds = [];
 
 document.addEventListener('DOMContentLoaded', function() {
+    if (chrome.storage != null) {
+        chrome.storage.local.get(["pinnedExtensionIds"], function(data) {
+            pinnedExtensionIds = data.pinnedExtensionIds;
+        });
+    }
     chrome.management.getAll(function(extensionsInfo) {
         setExtensionsTables(extensionsInfo);
     });
@@ -47,9 +53,7 @@ function generateTableRow(extension) {
     let row = document.createElement('tr');
 
     let cellPin = document.createElement('td');
-    let pinIcon = document.createElement('img');
-    pinIcon.src = 'resources/unpinned.png'
-    cellPin.appendChild(pinIcon);
+    cellPin.appendChild(generatePin(extension));
     
     let cellIcon = document.createElement('td');
     let icon = document.createElement('img');
@@ -79,29 +83,29 @@ function generateTableRow(extension) {
     return row;
 }
 
-// function generatePinCheckbox(extension) {
-//     let switchLabel = document.createElement('label');
-//     switchLabel.className = 'switch';
-//     let switchSpan = document.createElement('span');
-//     let switchInput = document.createElement('input');
-//     switchInput.type = 'checkbox';
-//     switchInput.checked = extension.enabled;
-//     switchInput.onclick = function() {
-//         setTimeout(
-//             () => {
-//                 extension.enabled = this.checked;
-//                 chrome.management.setEnabled(extension.id, extension.enabled);
-//                 switchExtensionTable(extension);
-//             },
-//             1 * 400
-//         );
-//     };
+function generatePin(extension) {
+    let pinIcon = document.createElement('img');
+    pinIcon.id = extCellId + extension.id;
+    if (pinnedExtensionIds.includes(extension.id)) {
+        pinIcon.src = 'resources/pinned.png'
+    } else {
+        pinIcon.src = 'resources/unpinned.png'
+    }
+    pinIcon.onclick = function() {
+        const extensionIdExtractor = (extensionId) => extensionId === extension.id;
+        let extensionTableId = pinnedExtensionIds.findIndex(extensionIdExtractor);
+        if (extensionTableId > -1) {
+            pinnedExtensionIds.splice(extensionTableId, 1);
+            this.src = 'resources/unpinned.png'
+        } else {
+            pinnedExtensionIds.push(extension.id);
+            this.src = 'resources/pinned.png'
+        }
+        chrome.storage.local.set({ pinnedExtensionIds });
+    }
 
-//     switchSpan.className = 'slider round'; 
-//     switchLabel.appendChild(switchInput);
-//     switchLabel.appendChild(switchSpan);
-//     return switchLabel;
-// }
+    return pinIcon;
+}
 
 function generateTooltipDescription(description) {
     let tooltip = document.createElement('span');
@@ -163,23 +167,5 @@ function switchExtensionTable(extension) {
     } else {
         document.getElementById(inactiveExtTbodyId)
         .appendChild(newTableRow);
-    }
-}
-
-function switchExtensionArray(extension) {
-    const extensionIdExtractor = (extension) => extension.id;
-    let extensionTableId;
-    if (extension.enabled) {
-        extensionTableId = pinnedExtensionIds.findIndex(extensionIdExtractor);
-        if (extensionTableId > -1) {
-            pinnedExtensionIds.splice(extensionTableId, 1);
-        }
-        inactiveExtensionsInfo.push(extension);
-    } else {
-        extensionTableId = inactiveExtensionsInfo.findIndex(extensionIdExtractor);
-        if (extensionTableId > -1) {
-            inactiveExtensionsInfo.splice(extensionTableId, 1);
-        }
-        pinnedExtensionIds.push(extension);
     }
 }
