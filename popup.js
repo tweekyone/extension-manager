@@ -7,72 +7,149 @@ const inactiveExtTbodyId = 'inactive-tbody';
 const extRowId = 'ext-row-';
 const extCellId = 'ext-cell-';
 
-const activeTable = document.createElement('table');
-const activeTbody = document.createElement('tbody');
-activeTable.id = activeExtTabId;
-activeTbody.id = activeExtTbodyId;
-activeTable.appendChild(activeTbody);
+let activeTable;
+let activeTbody;
 
-const inactiveTable = document.createElement('table');
-const inactiveTbody = document.createElement('tbody');
-inactiveTable.id = inactiveExtTabId;
-inactiveTbody.id = inactiveExtTbodyId;     
-inactiveTable.appendChild(inactiveTbody);
+let inactiveTable;
+let inactiveTbody;
 
-const appIconsContainer = document.getElementById('appIconsContainer');
-appIconsContainer.appendChild(activeTable);
-appIconsContainer.appendChild(document.createElement('hr'));
-appIconsContainer.appendChild(inactiveTable);
+let allExtensions;
 
-let pinnedExtensionIds = [];
+let pinnedExtensionIds;
+
+const pinActiveExtTabId = 'pin-active-table';
+const pinInactiveExtTabId = 'pin-inactive-table';
+const pinActiveExtTbodyId = 'pin-active-tbody';
+const pinInactiveExtTbodyId = 'pin-inactive-tbody';
+const pinExtRowId = 'pin-ext-row-';
+
+let pinnedActiveTable;
+let pinnedActiveTbody;
+
+let pinnedInactiveTable;
+let pinnedInactiveTbody;
+
+let pinnedExtensions;
+
+class ExtWithPinFlag {
+    constructor(extension, pinned) {
+        this.extension = extension;
+        this.pinned = pinned;
+    }
+}
 
 document.addEventListener('DOMContentLoaded', function() {
+    initTables();
     if (chrome.storage != null) {
         chrome.storage.local.get(["pinnedExtensionIds"], function(data) {
             pinnedExtensionIds = data.pinnedExtensionIds;
         });
     }
+    
     chrome.management.getAll(function(extensionsInfo) {
         setExtensionsTables(extensionsInfo);
     });
+
+    const allExtensionsButton = document.getElementById('all_extensions_button');
+    allExtensionsButton.addEventListener('click', function(event) {
+        openTab(event, 'all_extensions');
+    });
+
+    const pinnedExtensionsButton = document.getElementById('pinned_extensions_button');
+    pinnedExtensionsButton.addEventListener('click', function(event) {
+        openTab(event, 'pinned_extensions');
+    });
 });
+
+function initTables() {
+    activeTable = document.createElement('table');
+    activeTbody = document.createElement('tbody');
+    activeTable.id = activeExtTabId;
+    activeTbody.id = activeExtTbodyId;
+    activeTable.appendChild(activeTbody);
+
+    inactiveTable = document.createElement('table');
+    inactiveTbody = document.createElement('tbody');
+    inactiveTable.id = inactiveExtTabId;
+    inactiveTbody.id = inactiveExtTbodyId;     
+    inactiveTable.appendChild(inactiveTbody);
+
+    allExtensions = document.getElementById('all_extensions');
+    allExtensions.appendChild(activeTable);
+    allExtensions.appendChild(document.createElement('hr'));
+    allExtensions.appendChild(inactiveTable);
+
+    pinnedActiveTable = document.createElement('table');
+    pinnedActiveTbody = document.createElement('tbody');
+    pinnedActiveTable.id = pinActiveExtTabId;
+    pinnedActiveTbody.id = pinActiveExtTbodyId;
+    pinnedActiveTable.appendChild(pinnedActiveTbody);
+
+    pinnedInactiveTable = document.createElement('table');
+    pinnedInactiveTbody = document.createElement('tbody');
+    pinnedInactiveTable.id = pinInactiveExtTabId;
+    pinnedInactiveTbody.id = pinInactiveExtTbodyId;     
+    pinnedInactiveTable.appendChild(pinnedInactiveTbody);
+
+    pinnedExtensions = document.getElementById('pinned_extensions');
+    pinnedExtensions.appendChild(pinnedActiveTable);
+    pinnedExtensions.appendChild(document.createElement('hr'));
+    pinnedExtensions.appendChild(pinnedInactiveTable);
+}
 
 function setExtensionsTables(extensions) {
     extensions.forEach(function(extension) {
-        const row = generateTableRow(extension);
-        row.id = extRowId + extension.id;
-        if (extension.enabled) {
+        let pinFlag = false;
+        console.log(pinnedExtensionIds);
+        if (pinnedExtensionIds !== undefined && pinnedExtensionIds.includes(extension.id)) {
+            pinFlag = true;
+        }
+        let extWithFlag = new ExtWithPinFlag(extension, pinFlag)
+
+        const row = generateTableRow(extWithFlag);
+        row.id =  extRowId + extension.id;
+        if (extWithFlag.extension.enabled) {
             activeTbody.appendChild(row);
         } else {
             inactiveTbody.appendChild(row);
         }
+
+        if (extWithFlag.pinned) {
+            let pinnedRow =row.cloneNode(true);
+            pinnedRow.id = pinExtRowId + extension.id;
+            if (extWithFlag.extension.enabled) {
+                pinnedActiveTbody.appendChild(pinnedRow);
+            } else {
+                pinnedInactiveTbody.appendChild(pinnedRow);
+            }
+        } 
     });
 }
 
-function generateTableRow(extension) {
+function generateTableRow(extWithFlag) {
     let row = document.createElement('tr');
 
     let cellPin = document.createElement('td');
-    cellPin.appendChild(generatePin(extension));
+    cellPin.appendChild(generatePin(extWithFlag));
     
     let cellIcon = document.createElement('td');
     let icon = document.createElement('img');
-    icon.src = extension.icons[0].url;
+    icon.src = extWithFlag.extension.icons[0].url;
     icon.classList.add('app-icon');
     cellIcon.appendChild(icon);
 
     let cellName = document.createElement('td');
-    let cellText = document.createTextNode(extension.name);
+    let cellText = document.createTextNode(extWithFlag.extension.name);
     cellName.appendChild(cellText);
 
     let cellInfo = document.createElement('td');
     cellInfo.className = 'td-tooltip';
-    let tooltip = generateTooltipDescription(extension.description);
+    let tooltip = generateTooltipDescription(extWithFlag.extension.description);
     cellInfo.appendChild(tooltip);
     cellInfo.appendChild(generateInfoIcon(tooltip));
 
     let cellEnable = document.createElement('td');
-    cellEnable.appendChild(generateToggleSwitch(extension));
+    cellEnable.appendChild(generateToggleSwitch(extWithFlag));
 
     row.appendChild(cellPin);
     row.appendChild(cellIcon);
@@ -83,28 +160,22 @@ function generateTableRow(extension) {
     return row;
 }
 
-function generatePin(extension) {
+function generatePin(extWithFlag) {
     let pinIcon = document.createElement('img');
-    pinIcon.id = extCellId + extension.id;
-    if (pinnedExtensionIds.includes(extension.id)) {
-        pinIcon.src = 'resources/pinned.png'
+    pinIcon.id = extCellId + extWithFlag.extension.id;
+    if (extWithFlag.pinned) {
+        pinIcon.src = 'resources/pinned.png';
     } else {
-        pinIcon.src = 'resources/unpinned.png'
+        pinIcon.src = 'resources/unpinned.png';
     }
     pinIcon.onclick = function() {
-        const extensionIdExtractor = (extensionId) => extensionId === extension.id;
-        let extensionTableId = pinnedExtensionIds.findIndex(extensionIdExtractor);
-        if (extensionTableId > -1) {
-            pinnedExtensionIds.splice(extensionTableId, 1);
-            this.src = 'resources/unpinned.png'
-        } else {
-            pinnedExtensionIds.push(extension.id);
-            this.src = 'resources/pinned.png'
-        }
-        chrome.storage.local.set({ pinnedExtensionIds });
+        switchPinExt(extWithFlag);
     }
-
     return pinIcon;
+}
+
+function switchPinExt(extWithFlag) {
+
 }
 
 function generateTooltipDescription(description) {
@@ -132,40 +203,71 @@ function generateInfoIcon(tooltip) {
     return icon;
 }
 
-function generateToggleSwitch(extension) {
+function generateToggleSwitch(extWithFlag) {
     let switchLabel = document.createElement('label');
     switchLabel.className = 'switch';
     let switchSpan = document.createElement('span');
     let switchInput = document.createElement('input');
     switchInput.type = 'checkbox';
-    switchInput.checked = extension.enabled;
-    switchInput.onclick = function() {
-        setTimeout(
-            () => {
-                extension.enabled = this.checked;
-                chrome.management.setEnabled(extension.id, extension.enabled);
-                switchExtensionTable(extension);
-            },
-            1 * 400
-        );
-    };
-
+    switchInput.checked = extWithFlag.extension.enabled;
     switchSpan.className = 'slider round'; 
+    switchInput.onclick = function() {
+        switchExtensionTable(extWithFlag, switchInput);
+    }
     switchLabel.appendChild(switchInput);
     switchLabel.appendChild(switchSpan);
     return switchLabel;
 }
 
-function switchExtensionTable(extension) {
-    const newTableRow = generateTableRow(extension);
-    newTableRow.id = extRowId + extension.id;
-    document.getElementById(newTableRow.id).remove();
+function switchExtensionTable(extWithFlag, switchInput) {
+    extWithFlag.extension.enabled = switchInput.checked;
+    chrome.management.setEnabled(extWithFlag.extension.id, extWithFlag.extension.enabled);
+    setTimeout(
+        () => {
+            let switchableRow = document.getElementById(extRowId + extWithFlag.extension.id);
+            if (switchableRow) {
+                switchableRow.parentNode.removeChild(switchableRow);
+                if (extWithFlag.extension.enabled) {
+                    document.getElementById(activeExtTbodyId)
+                    .appendChild(switchableRow);
+                } else {
+                    document.getElementById(inactiveExtTbodyId)
+                    .appendChild(switchableRow);
+                }
+            }
 
-    if (extension.enabled) {
-        document.getElementById(activeExtTbodyId)
-        .appendChild(newTableRow);
-    } else {
-        document.getElementById(inactiveExtTbodyId)
-        .appendChild(newTableRow);
+            if (extWithFlag.pinned) {
+                let switchablePinnedRow = document.getElementById(pinExtRowId + extWithFlag.extension.id);
+                if (switchablePinnedRow) {
+                    switchablePinnedRow.parentNode.removeChild(switchablePinnedRow);
+                    if (extWithFlag.extension.enabled) {
+                        document.getElementById(pinActiveExtTbodyId)
+                        .appendChild(switchablePinnedRow);
+                    } else {
+                        document.getElementById(inactiveExtTbodyId)
+                        .appendChild(switchableRow);
+                    }
+                }
+            }
+        },
+        1 * 400
+    );
+}
+
+function openTab(event, tableName) {
+    // Get all elements with class="tabcontent" and hide them
+    let tabcontent = document.getElementsByClassName("tabcontent");
+    for (let i = 0; i < tabcontent.length; i++) {
+        tabcontent[i].style.display = "none";
     }
+
+    // Get all elements with class="tablinks" and remove the class "active"
+    let tablinks = document.getElementsByClassName("tablinks");
+    for (let i = 0; i < tablinks.length; i++) {
+        tablinks[i].className = tablinks[i].className.replace(" active", "");
+    }
+
+    // Show the current tab, and add an "active" class to the button that opened the tab
+    document.getElementById(tableName).style.display = "block";
+    event.currentTarget.className += " active";
 }

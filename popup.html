@@ -14,7 +14,12 @@
 </head>
 <body>
     <h1>My Chrome Plugin</h1>
-    <div id="appIconsContainer"></div>
-    <script src="popup.js"></script>
+    <div class="tab">
+        <button class="tablinks active" id="all_extensions_button">All extensions</button>
+        <button class="tablinks" id="pinned_extensions_button">Pinned extensions</button>        
+    </div>
+    <div id="all_extensions" class="tabcontent"></div>
+    <div id="pinned_extensions" class="tabcontent"></div>
+    <script src="./popup.js"></script>
 </body>
 </html>
