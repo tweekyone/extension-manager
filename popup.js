@@ -6,6 +6,7 @@ const activeExtTbodyId = 'active-tbody';
 const inactiveExtTbodyId = 'inactive-tbody';
 const extRowId = 'ext-row-';
 const extCellId = 'ext-cell-';
+const pinIconId = 'pin-icon-';
 
 let activeTable;
 let activeTbody;
@@ -130,6 +131,7 @@ function generateTableRow(extWithFlag) {
     let row = document.createElement('tr');
 
     let cellPin = document.createElement('td');
+    // cellPin.id = extCellId + extWithFlag.extension.id;
     cellPin.appendChild(generatePin(extWithFlag));
     
     let cellIcon = document.createElement('td');
@@ -162,7 +164,7 @@ function generateTableRow(extWithFlag) {
 
 function generatePin(extWithFlag) {
     let pinIcon = document.createElement('img');
-    pinIcon.id = extCellId + extWithFlag.extension.id;
+    pinIcon.id = pinIconId + extWithFlag.extension.id;
     if (extWithFlag.pinned) {
         pinIcon.src = 'resources/pinned.png';
     } else {
@@ -175,7 +177,31 @@ function generatePin(extWithFlag) {
 }
 
 function switchPinExt(extWithFlag) {
+    console.log(pinnedExtensionIds);
+    const extensionIdExtractor = (extensionId) => extensionId === extWithFlag.extension.id;
+    let extensionTableId = pinnedExtensionIds.findIndex(extensionIdExtractor);
+    let switchebbleRow = document.getElementById(extRowId + extWithFlag.extension.id);
+    let switchebbleIcon = switchebbleRow.querySelector('#' + pinIconId + extWithFlag.extension.id);
+    let switchebblePinRow = document.getElementById(pinExtRowId + extWithFlag.extension.id);
+    let switchebblePinIcon = switchebblePinRow.querySelector('#' + pinIconId + extWithFlag.extension.id);
 
+    if (extensionTableId > -1) {
+        pinnedExtensionIds.splice(extensionTableId, 1);
+        switchebbleIcon.src = 'resources/unpinned.png';
+        if (switchebblePinIcon !== undefined) {
+            switchebblePinIcon.src = 'resources/unpinned.png';
+        }
+        extWithFlag.pinned = false;
+    } else {
+        pinnedExtensionIds.push(extension.id);
+        switchebbleIcon.src = 'resources/unpinned.png';
+        if (switchebblePinIcon !== undefined) {
+            switchebblePinIcon.src = 'resources/unpinned.png';
+        }
+        extWithFlag.pinned = true;
+    }
+
+    chrome.storage.local.set({ pinnedExtensionIds });
 }
 
 function generateTooltipDescription(description) {
