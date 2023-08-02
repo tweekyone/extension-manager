@@ -16,7 +16,7 @@ let inactiveTbody;
 
 let allExtensions;
 
-let pinnedExtensionIds;
+let pinExtIds = [];
 
 const pinActiveExtTabId = 'pin-active-table';
 const pinInactiveExtTabId = 'pin-inactive-table';
@@ -41,12 +41,14 @@ class ExtWithPinFlag {
 
 document.addEventListener('DOMContentLoaded', function() {
     initTables();
-    if (chrome.storage != null) {
-        chrome.storage.local.get(["pinnedExtensionIds"], function(data) {
-            pinnedExtensionIds = data.pinnedExtensionIds;
-        });
+
+    chrome.storage.local.get(["pinnedExtensionIdsKey"]).then((result) => {
+        pinExtIds = result.pinnedExtensionIdsKey;
+    });
+    if (pinExtIds === undefined) {
+        pinExtIds = [];
     }
-    
+
     chrome.management.getAll(function(extensionsInfo) {
         setExtensionsTables(extensionsInfo);
     });
@@ -101,8 +103,7 @@ function initTables() {
 function setExtensionsTables(extensions) {
     extensions.forEach(function(extension) {
         let pinFlag = false;
-        console.log(pinnedExtensionIds);
-        if (pinnedExtensionIds !== undefined && pinnedExtensionIds.includes(extension.id)) {
+        if (pinExtIds !== undefined && pinExtIds.includes(extension.id)) {
             pinFlag = true;
         }
         let extWithFlag = new ExtWithPinFlag(extension, pinFlag)
@@ -177,31 +178,33 @@ function generatePin(extWithFlag) {
 }
 
 function switchPinExt(extWithFlag) {
-    console.log(pinnedExtensionIds);
     const extensionIdExtractor = (extensionId) => extensionId === extWithFlag.extension.id;
-    let extensionTableId = pinnedExtensionIds.findIndex(extensionIdExtractor);
+    let extensionTableId = pinExtIds.findIndex(extensionIdExtractor);
     let switchebbleRow = document.getElementById(extRowId + extWithFlag.extension.id);
     let switchebbleIcon = switchebbleRow.querySelector('#' + pinIconId + extWithFlag.extension.id);
     let switchebblePinRow = document.getElementById(pinExtRowId + extWithFlag.extension.id);
-    let switchebblePinIcon = switchebblePinRow.querySelector('#' + pinIconId + extWithFlag.extension.id);
+    let switchebblePinIcon;
+    if (switchebblePinRow != null) {
+        switchebblePinIcon = switchebblePinRow.querySelector('#' + pinIconId + extWithFlag.extension.id);
+    }
 
     if (extensionTableId > -1) {
-        pinnedExtensionIds.splice(extensionTableId, 1);
+        pinExtIds.splice(extensionTableId, 1);
         switchebbleIcon.src = 'resources/unpinned.png';
         if (switchebblePinIcon !== undefined) {
             switchebblePinIcon.src = 'resources/unpinned.png';
         }
         extWithFlag.pinned = false;
     } else {
-        pinnedExtensionIds.push(extension.id);
-        switchebbleIcon.src = 'resources/unpinned.png';
+        pinExtIds.push(extWithFlag.extension.id);
+        switchebbleIcon.src = 'resources/pinned.png';
         if (switchebblePinIcon !== undefined) {
-            switchebblePinIcon.src = 'resources/unpinned.png';
+            switchebblePinIcon.src = 'resources/pinned.png';
         }
         extWithFlag.pinned = true;
     }
 
-    chrome.storage.local.set({ pinnedExtensionIds });
+    chrome.storage.local.set({ pinnedExtensionIdsKey: pinExtIds });
 }
 
 function generateTooltipDescription(description) {
