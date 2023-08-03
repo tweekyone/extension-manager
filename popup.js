@@ -118,7 +118,7 @@ function setExtensionsTables(extensions) {
 
         if (extWithFlag.pinned) {
             let pinnedRow =row.cloneNode(true);
-            pinnedRow.id = pinExtRowId + extension.id;
+            setClonedRow(pinnedRow, extWithFlag);
             if (extWithFlag.extension.enabled) {
                 pinnedActiveTbody.appendChild(pinnedRow);
             } else {
@@ -132,7 +132,6 @@ function generateTableRow(extWithFlag) {
     let row = document.createElement('tr');
 
     let cellPin = document.createElement('td');
-    // cellPin.id = extCellId + extWithFlag.extension.id;
     cellPin.appendChild(generatePin(extWithFlag));
     
     let cellIcon = document.createElement('td');
@@ -181,12 +180,15 @@ function switchPinExt(extWithFlag) {
     const extensionIdExtractor = (extensionId) => extensionId === extWithFlag.extension.id;
     let extensionTableId = pinExtIds.findIndex(extensionIdExtractor);
     let switchebbleRow = document.getElementById(extRowId + extWithFlag.extension.id);
+    console.log(document);
     let switchebbleIcon = switchebbleRow.querySelector('#' + pinIconId + extWithFlag.extension.id);
     let switchebblePinRow = document.getElementById(pinExtRowId + extWithFlag.extension.id);
-    let switchebblePinIcon;
-    if (switchebblePinRow != null) {
-        switchebblePinIcon = switchebblePinRow.querySelector('#' + pinIconId + extWithFlag.extension.id);
+    if (switchebblePinRow == null) {
+        switchebblePinRow = switchebbleRow.cloneNode(true);
+        switchebblePinRow.id = pinExtRowId + extWithFlag.extension.id;
     }
+    let switchebblePinIcon = switchebblePinRow.querySelector('#' + pinIconId + extWithFlag.extension.id);
+    setClonedRow(switchebblePinRow, extWithFlag);
 
     if (extensionTableId > -1) {
         pinExtIds.splice(extensionTableId, 1);
@@ -194,6 +196,7 @@ function switchPinExt(extWithFlag) {
         if (switchebblePinIcon !== undefined) {
             switchebblePinIcon.src = 'resources/unpinned.png';
         }
+        switchebblePinRow.parentNode.removeChild(switchebblePinRow);
         extWithFlag.pinned = false;
     } else {
         pinExtIds.push(extWithFlag.extension.id);
@@ -201,10 +204,26 @@ function switchPinExt(extWithFlag) {
         if (switchebblePinIcon !== undefined) {
             switchebblePinIcon.src = 'resources/pinned.png';
         }
+        if (extWithFlag.extension.enabled) {
+            let pinActiveExtTbody = document.getElementById(pinActiveExtTbodyId);
+            pinActiveExtTbody.appendChild(switchebblePinRow)
+        } else {
+            let pinActiveExtTbody = document.getElementById(pinInactiveExtTbodyId);
+            pinActiveExtTbody.appendChild(switchebblePinRow)
+        }
         extWithFlag.pinned = true;
     }
 
     chrome.storage.local.set({ pinnedExtensionIdsKey: pinExtIds });
+}
+
+
+function setClonedRow(clonedRow, extWithFlag) {
+    clonedRow.id = pinExtRowId + extWithFlag.extension.id;
+    let pinIcon = clonedRow.querySelector('#' + pinIconId + extWithFlag.extension.id);
+    pinIcon.onclick = function() {
+        switchPinExt(extWithFlag);
+    }
 }
 
 function generateTooltipDescription(description) {
@@ -267,15 +286,13 @@ function switchExtensionTable(extWithFlag, switchInput) {
 
             if (extWithFlag.pinned) {
                 let switchablePinnedRow = document.getElementById(pinExtRowId + extWithFlag.extension.id);
-                if (switchablePinnedRow) {
-                    switchablePinnedRow.parentNode.removeChild(switchablePinnedRow);
-                    if (extWithFlag.extension.enabled) {
-                        document.getElementById(pinActiveExtTbodyId)
-                        .appendChild(switchablePinnedRow);
-                    } else {
-                        document.getElementById(inactiveExtTbodyId)
-                        .appendChild(switchableRow);
-                    }
+                switchablePinnedRow.parentNode.removeChild(switchablePinnedRow);
+                if (extWithFlag.extension.enabled) {
+                    document.getElementById(pinActiveExtTbodyId)
+                    .appendChild(switchablePinnedRow);
+                } else {
+                    document.getElementById(pinInactiveExtTbodyId)
+                    .appendChild(switchablePinnedRow);
                 }
             }
         },
