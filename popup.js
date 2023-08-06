@@ -7,6 +7,7 @@ const inactiveExtTbodyId = 'inactive-tbody';
 const extRowId = 'ext-row-';
 const extCellId = 'ext-cell-';
 const pinIconId = 'pin-icon-';
+const switcherId = 'switch-';
 
 let activeTable;
 let activeTbody;
@@ -196,7 +197,9 @@ function switchPinExt(extWithFlag) {
         if (switchebblePinIcon !== undefined) {
             switchebblePinIcon.src = 'resources/unpinned.png';
         }
-        switchebblePinRow.parentNode.removeChild(switchebblePinRow);
+        if (switchebblePinRow.parentNode != null) {
+            switchebblePinRow.parentNode.removeChild(switchebblePinRow);
+        }
         extWithFlag.pinned = false;
     } else {
         pinExtIds.push(extWithFlag.extension.id);
@@ -223,6 +226,11 @@ function setClonedRow(clonedRow, extWithFlag) {
     let pinIcon = clonedRow.querySelector('#' + pinIconId + extWithFlag.extension.id);
     pinIcon.onclick = function() {
         switchPinExt(extWithFlag);
+    }
+    let switchInput = clonedRow.querySelector('#' + switcherId + extWithFlag.extension.id);
+    switchInput.checked = extWithFlag.extension.enabled;
+    switchInput.onclick = function() {
+        switchExtensionTable(extWithFlag, switchInput);
     }
 }
 
@@ -255,10 +263,11 @@ function generateToggleSwitch(extWithFlag) {
     let switchLabel = document.createElement('label');
     switchLabel.className = 'switch';
     let switchSpan = document.createElement('span');
+    switchSpan.className = 'slider round'; 
     let switchInput = document.createElement('input');
+    switchInput.id = switcherId + extWithFlag.extension.id;
     switchInput.type = 'checkbox';
     switchInput.checked = extWithFlag.extension.enabled;
-    switchSpan.className = 'slider round'; 
     switchInput.onclick = function() {
         switchExtensionTable(extWithFlag, switchInput);
     }
@@ -282,6 +291,8 @@ function switchExtensionTable(extWithFlag, switchInput) {
                     document.getElementById(inactiveExtTbodyId)
                     .appendChild(switchableRow);
                 }
+                let switchInput = switchableRow.querySelector('#' + switcherId + extWithFlag.extension.id);
+                switchInput.checked = extWithFlag.extension.enabled;
             }
 
             if (extWithFlag.pinned) {
@@ -294,6 +305,8 @@ function switchExtensionTable(extWithFlag, switchInput) {
                     document.getElementById(pinInactiveExtTbodyId)
                     .appendChild(switchablePinnedRow);
                 }
+                let switchInput = switchablePinnedRow.querySelector('#' + switcherId + extWithFlag.extension.id);
+                switchInput.checked = extWithFlag.extension.enabled;
             }
         },
         1 * 400
